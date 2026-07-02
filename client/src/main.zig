@@ -14,7 +14,7 @@ pub fn main(init: std.process.Init) !void {
     var writer = stream.writer(io, &buf);
     const out = &writer.interface;
 
-    try out.writeAll("12340003hel");
+    try out.writeAll("00020003hel0010helloworld");
     try out.flush();
 }
 

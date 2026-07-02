@@ -29,34 +29,45 @@ fn handleStream(gpa: std.mem.Allocator, io: std.Io, stream: *std.Io.net.Stream) 
             return;
         },
     };
-    _ = std.fmt.parseUnsigned(u32, nstr, 10) catch {
+    const n = std.fmt.parseUnsigned(u32, nstr, 10) catch {
         log.err("failed to parse nstr to int", .{});
         return;
     };
-    var cmd = std.ArrayList(u8).initCapacity(gpa, 4) catch {
+
+    var cmd = std.ArrayList([]const u8).initCapacity(gpa, 4) catch {
         log.err("failed to init array list(cmd)", .{});
         return;
     };
     defer cmd.deinit(gpa);
 
-    const lenstr = read4bytes(in) catch |err| switch (err) {
-        error.EndOfStream => {
-            log.info("EOF", .{});
+    for (0..n) |_| {
+        const lenstr = read4bytes(in) catch |err| switch (err) {
+            error.EndOfStream => {
+                log.info("EOF", .{});
+                return;
+            },
+            else => {
+                log.err("read failed: {}", .{err});
+                return;
+            },
+        };
+        const len: u32 = std.fmt.parseUnsigned(u32, lenstr, 10) catch {
+            log.err("failed to parse len", .{});
             return;
-        },
-        else => {
-            log.err("read failed: {}", .{err});
+        };
+        const body = in.take(len) catch |err| {
+            log.err("invalid fmt: {}", .{err});
             return;
-        },
-    };
-    const len: u32 = std.fmt.parseUnsigned(u32, lenstr, 10) catch {
-        log.err("failed to parse len", .{});
-        return;
-    };
-    const body = in.peek(len) catch @panic("panic!!");
-    // add to array
+        };
+        cmd.append(gpa, body) catch |err| {
+            log.err("failed to append cmd: {}", .{err});
+            return;
+        };
+    }
 
-    std.debug.print("{s}\n", .{body});
+    for (cmd.items) |item| {
+        std.debug.print("{s}", .{item});
+    }
 }
 
 pub fn main(init: std.process.Init) !void {
