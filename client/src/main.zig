@@ -10,7 +10,6 @@ pub fn main(init: std.process.Init) !void {
     if (!args.skip()) {
         unreachable;
     }
-    std.debug.print("{s}", .{args.next().?});
 
     const peer = try std.Io.net.IpAddress.parseIp4("127.0.0.1", 8083);
     const stream = try peer.connect(io, .{ .mode = .stream });
@@ -19,6 +18,15 @@ pub fn main(init: std.process.Init) !void {
     var buf: [1024]u8 = undefined;
     var writer = stream.writer(io, &buf);
     const out = &writer.interface;
+
+    const cmd = args.next() orelse unreachable;
+    if (std.mem.eql(u8, cmd, "get")) {
+        std.debug.print("get xxx", .{});
+    } else if (std.mem.eql(u8, cmd, "set")) {
+        std.debug.print("set xxx", .{});
+    } else {
+        @panic("unsupported command");
+    }
 
     try out.writeAll("00020003hel0010helloworld");
     try out.flush();
