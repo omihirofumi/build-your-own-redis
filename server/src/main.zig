@@ -66,7 +66,7 @@ fn handleStream(gpa: std.mem.Allocator, io: std.Io, stream: *std.Io.net.Stream) 
     }
 
     for (cmd.items) |item| {
-        std.debug.print("{s}", .{item});
+        std.debug.print("{s}\n", .{item});
     }
 }
 

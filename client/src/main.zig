@@ -6,6 +6,12 @@ const client = @import("client");
 pub fn main(init: std.process.Init) !void {
     const io = init.io;
 
+    var args = init.minimal.args.iterate();
+    if (!args.skip()) {
+        unreachable;
+    }
+    std.debug.print("{s}", .{args.next().?});
+
     const peer = try std.Io.net.IpAddress.parseIp4("127.0.0.1", 8083);
     const stream = try peer.connect(io, .{ .mode = .stream });
     defer stream.close(io);
