@@ -21,7 +21,7 @@ fn handleStream(gpa: std.mem.Allocator, io: std.Io, stream: *std.Io.net.Stream) 
 
     const nstr = read4bytes(in) catch |err| switch (err) {
         error.EndOfStream => {
-            log.info("EOF", .{});
+            log.info("read nstr: EOF", .{});
             return;
         },
         else => {
@@ -33,6 +33,7 @@ fn handleStream(gpa: std.mem.Allocator, io: std.Io, stream: *std.Io.net.Stream) 
         log.err("failed to parse nstr to int", .{});
         return;
     };
+    log.debug("n: {d}", .{n});
 
     var cmd = std.ArrayList([]const u8).initCapacity(gpa, 4) catch {
         log.err("failed to init array list(cmd)", .{});
@@ -43,7 +44,7 @@ fn handleStream(gpa: std.mem.Allocator, io: std.Io, stream: *std.Io.net.Stream) 
     for (0..n) |_| {
         const lenstr = read4bytes(in) catch |err| switch (err) {
             error.EndOfStream => {
-                log.info("EOF", .{});
+                log.info("read lenstr EOF", .{});
                 return;
             },
             else => {
@@ -55,6 +56,7 @@ fn handleStream(gpa: std.mem.Allocator, io: std.Io, stream: *std.Io.net.Stream) 
             log.err("failed to parse len", .{});
             return;
         };
+        log.debug("len: {d}", .{len});
         const body = in.take(len) catch |err| {
             log.err("invalid fmt: {}", .{err});
             return;
