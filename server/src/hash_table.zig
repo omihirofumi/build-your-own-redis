@@ -57,6 +57,16 @@ pub fn HashTable(comptime T: type) type {
 
             return null;
         }
+
+        pub fn debug_print(self: Self) void {
+            for (0..bucket_size) |i| {
+                var bucket = self.buckets[i];
+                while (bucket) |entry| {
+                    std.debug.print("key={s} value={s}\n", .{ entry.key, entry.value });
+                    bucket = entry.next;
+                }
+            }
+        }
     };
 }
 
@@ -67,5 +77,6 @@ test "init" {
 test "put key/value" {
     var htable = HashTable([]const u8).init();
     htable.put("key", "value");
+    htable.debug_print();
     try testing.expectEqual("value", htable.get("key"));
 }
