@@ -15,9 +15,22 @@ pub fn HashTable(comptime T: type) type {
         };
 
         buckets: [bucket_size]?*Entry,
+        allocator: Allocator,
 
-        pub fn init() Self {
-            return Self{ .buckets = @splat(null) };
+        pub fn init(allocator: Allocator) Self {
+            return Self{ .buckets = @splat(null), .allocator = allocator };
+        }
+
+        pub fn deinit(self: *Self) void {
+            for (&self.buckets) |*bucket| {
+                var current = bucket.*;
+                while (current) |entry| {
+                    const next = entry.next;
+                    self.allocator.destroy(entry);
+                    current = next;
+                }
+                bucket.* = null;
+            }
         }
 
         fn hash_index(key: []const u8) u64 {
@@ -25,7 +38,7 @@ pub fn HashTable(comptime T: type) type {
             return hash % bucket_size;
         }
 
-        pub fn put(self: *Self, key: []const u8, value: T) void {
+        pub fn put(self: *Self, key: []const u8, value: T) !void {
             const index = hash_index(key);
 
             var current = self.buckets[index];
@@ -38,9 +51,12 @@ pub fn HashTable(comptime T: type) type {
                 current = entry.next;
             }
 
-            var entry = Entry{ .key = key, .value = value, .next = self.buckets[index] };
+            // var entry = Entry{ .key = key, .value = value, .next = self.buckets[index] };
+            const entry = try self.allocator.create(Entry);
+            errdefer self.allocator.free(entry);
+            entry.* = .{ .key = key, .value = value, .next = self.buckets[index] };
 
-            self.buckets[index] = &entry;
+            self.buckets[index] = entry;
         }
 
         pub fn get(self: Self, key: []const u8) ?T {
@@ -62,7 +78,6 @@ pub fn HashTable(comptime T: type) type {
             for (0..bucket_size) |i| {
                 var bucket = self.buckets[i];
                 while (bucket) |entry| {
-                    std.debug.print("key={s} value={s}\n", .{ entry.key, entry.value });
                     bucket = entry.next;
                 }
             }
@@ -71,12 +86,13 @@ pub fn HashTable(comptime T: type) type {
 }
 
 test "init" {
-    _ = HashTable(u8).init();
+    _ = HashTable(u8).init(testing.allocator);
 }
 
 test "put key/value" {
-    var htable = HashTable([]const u8).init();
-    htable.put("key", "value");
+    var htable = HashTable([]const u8).init(testing.allocator);
+    defer htable.deinit();
+    try htable.put("key", "value");
     htable.debug_print();
     try testing.expectEqual("value", htable.get("key"));
 }
